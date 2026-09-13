@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Cortex MVP — agile backend orchestration engine for community commerce. Demonstration for IMDA OIP Call 29 (Metro Challenge Statement 2). Simulated data only.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230B1F1E'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%236FC6C0' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='2.5' fill='%236FC6C0'/%3E%3C/svg%3E">
+<title>Cortex — Agile Backend Engine · MVP Demonstration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#0B1F1E; --panel:#102927; --panel2:#143231; --hair:#1E3D3B; --hair2:#274B48;
+    --ink:#EDF4F3; --sub:#9DBBB7; --mut:#6F918D; --accent:#6FC6C0; --accent-deep:#0E7C7B;
+    --good:#0ca30c; --warn:#fab219; --crit:#d03b3b;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  body{background:var(--bg);color:var(--ink);font-family:'Poppins',system-ui,-apple-system,sans-serif;font-size:14px;min-height:100vh}
+  ::-webkit-scrollbar{width:8px;height:8px} ::-webkit-scrollbar-thumb{background:var(--hair2);border-radius:4px}
+
+  header{display:flex;align-items:center;gap:18px;padding:14px 26px;border-bottom:1px solid var(--hair);position:sticky;top:0;background:var(--bg);z-index:50}
+  .wordmark{font-size:20px;font-weight:600;letter-spacing:.08em}
+  .wordmark em{font-style:normal;color:var(--accent)}
+  .env{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--warn);border:1px solid rgba(250,178,25,.4);border-radius:4px;padding:3px 8px}
+  .spacer{flex:1}
+  .clock{font-family:var(--mono);font-size:12px;color:var(--sub)}
+  nav{display:flex;gap:4px;padding:10px 26px 0;border-bottom:1px solid var(--hair);background:var(--bg);position:sticky;top:53px;z-index:49}
+  nav button{background:none;border:none;color:var(--sub);font-family:inherit;font-size:13px;font-weight:500;padding:10px 16px 12px;cursor:pointer;border-bottom:2px solid transparent}
+  nav button:hover{color:var(--ink)}
+  nav button.on{color:var(--accent);border-bottom-color:var(--accent)}
+  main{padding:22px 26px 60px;max-width:1400px;margin:0 auto}
+  .view{display:none}.view.on{display:block}
+
+  .disclaimer{font-size:11.5px;color:var(--mut);margin-bottom:18px}
+  .rowlbl{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--mut);margin:22px 0 10px;font-weight:500}
+
+  .tiles{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+  .tile{background:var(--panel);border:1px solid var(--hair);border-radius:8px;padding:14px 16px}
+  .tile .l{font-size:11px;color:var(--sub);margin-bottom:6px}
+  .tile .v{font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+  .tile .s{font-size:11px;color:var(--mut);margin-top:4px}
+  .tile .v .u{font-size:13px;color:var(--sub);font-weight:400}
+  .tile.alert .v{color:var(--warn)}
+
+  .grid2{display:grid;grid-template-columns:1.35fr 1fr;gap:12px;align-items:start}
+  .panel{background:var(--panel);border:1px solid var(--hair);border-radius:8px;padding:16px 18px}
+  .panel h3{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:12px}
+  .panel h3 .r{float:right;color:var(--mut);letter-spacing:0;text-transform:none;font-weight:400;font-size:11px}
+
+  /* system health */
+  .sys{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .sysc{background:var(--panel2);border:1px solid var(--hair2);border-radius:6px;padding:11px 13px}
+  .sysc .n{font-size:12.5px;font-weight:500;margin-bottom:2px}
+  .sysc .d{font-size:10.5px;color:var(--mut);margin-bottom:8px}
+  .st{display:inline-flex;align-items:center;gap:6px;font-size:11px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--good)}
+  .st.warn .dot{background:var(--warn)} .st.crit .dot{background:var(--crit)}
+  .st .ic{font-size:10px}
+
+  /* event feed */
+  .feed{height:340px;overflow-y:auto;font-family:var(--mono);font-size:11.5px;line-height:1.5;display:flex;flex-direction:column-reverse}
+  .ev{padding:6px 8px;border-bottom:1px solid var(--hair);display:flex;gap:10px;align-items:baseline}
+  .ev .t{color:var(--mut);flex-shrink:0}
+  .ev .tag{flex-shrink:0;font-size:9.5px;letter-spacing:.08em;padding:1px 6px;border-radius:3px;border:1px solid var(--hair2);color:var(--accent)}
+  .ev .tag.pos{color:#9ec5f4;} .ev .tag.sync{color:var(--accent)} .ev .tag.fin{color:#e87ba4} .ev .tag.q{color:var(--warn);border-color:rgba(250,178,25,.4)}
+  .ev .m{color:var(--sub)} .ev .m b{color:var(--ink);font-weight:500}
+
+  /* bars */
+  .bars .brow{display:grid;grid-template-columns:110px 1fr 74px;gap:10px;align-items:center;margin-bottom:9px}
+  .bars .bn{font-size:12px;color:var(--sub)}
+  .bars .btrack{height:14px;position:relative}
+  .bars .bfill{height:14px;background:var(--accent-deep);border-radius:0 4px 4px 0;min-width:2px;transition:width .6s}
+  .bars .bv{font-family:var(--mono);font-size:11.5px;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+
+  /* sparkline */
+  .spark{width:100%;height:64px;display:block}
+  .sparkmeta{display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-top:4px}
+
+  /* drill */
+  .drill{border:1px solid rgba(250,178,25,.35);background:rgba(250,178,25,.05);border-radius:8px;padding:14px 18px;display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+  .drill .tx{flex:1;min-width:420px}
+  .drill .btn{white-space:nowrap}
+  .drill .tx b{display:block;font-size:13.5px;margin-bottom:2px}
+  .drill .tx span{font-size:12px;color:var(--sub)}
+  .btn{font-family:inherit;font-size:12.5px;font-weight:500;border-radius:6px;padding:9px 16px;cursor:pointer;border:1px solid var(--hair2);background:var(--panel2);color:var(--ink)}
+  .btn:hover{border-color:var(--accent)}
+  .btn.warn{border-color:rgba(250,178,25,.5);color:var(--warn)}
+  .btn.acc{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+  .btn.acc:hover{background:#0F8B8A}
+  .btn:disabled{opacity:.45;cursor:default}
+  .drill select.btn{padding:9px 12px;outline:none}
+  .drill select.btn option{background:var(--panel2);color:var(--ink)}
+  .qbar{flex:0 0 190px}
+  .qbar .l{font-size:10.5px;color:var(--mut);margin-bottom:4px;display:flex;justify-content:space-between;white-space:nowrap;gap:8px}
+  .qtrack{height:10px;background:var(--panel2);border-radius:5px;overflow:hidden}
+  .qfill{height:10px;width:0%;background:var(--warn);border-radius:5px;transition:width .5s}
+
+  table.dt{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.dt th{text-align:left;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);font-weight:500;padding:0 10px 8px 0;border-bottom:1px solid var(--hair2)}
+  table.dt td{padding:8px 10px 8px 0;border-bottom:1px solid var(--hair);color:var(--sub);font-variant-numeric:tabular-nums}
+  table.dt td b{color:var(--ink);font-weight:500}
+  table.dt td.num{font-family:var(--mono);font-size:11.5px}
+  .pill{font-size:10px;letter-spacing:.06em;padding:2px 8px;border-radius:10px;border:1px solid var(--hair2);color:var(--sub)}
+  .pill.ok{color:var(--good);border-color:rgba(12,163,12,.35)}
+  .pill.pend{color:var(--warn);border-color:rgba(250,178,25,.35)}
+
+  /* api explorer */
+  .api{display:grid;grid-template-columns:340px 1fr;gap:12px;align-items:start}
+  .eplist .ep{padding:10px 12px;border:1px solid var(--hair);border-radius:6px;margin-bottom:8px;cursor:pointer;background:var(--panel)}
+  .eplist .ep:hover{border-color:var(--hair2)}
+  .eplist .ep.on{border-color:var(--accent-deep);background:var(--panel2)}
+  .meth{font-family:var(--mono);font-size:10px;font-weight:500;padding:2px 7px;border-radius:3px;margin-right:8px}
+  .meth.get{background:rgba(14,124,123,.25);color:var(--accent)}
+  .meth.post{background:rgba(42,120,214,.22);color:#9ec5f4}
+  .ep .p{font-family:var(--mono);font-size:11.5px;color:var(--ink)}
+  .ep .d{font-size:11px;color:var(--mut);margin-top:4px}
+  .resp{background:#0A1918;border:1px solid var(--hair);border-radius:8px;overflow:hidden}
+  .resphead{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--hair);font-family:var(--mono);font-size:11.5px;color:var(--sub)}
+  .resphead .code{color:var(--good)}
+  pre{padding:14px;font-family:var(--mono);font-size:11.5px;line-height:1.55;color:#BFE0DC;overflow-x:auto;white-space:pre;max-height:430px;overflow-y:auto}
+  .vswitch{display:inline-flex;border:1px solid var(--hair2);border-radius:6px;overflow:hidden;margin-left:auto}
+  .vswitch button{background:none;border:none;color:var(--sub);font-family:var(--mono);font-size:11px;padding:5px 12px;cursor:pointer}
+  .vswitch button.on{background:var(--accent-deep);color:#fff}
+
+  /* wizard */
+  .wiz{max-width:760px}
+  .steps{display:flex;gap:8px;margin-bottom:18px}
+  .steps .s{flex:1;padding:9px 12px;border:1px solid var(--hair);border-radius:6px;font-size:11.5px;color:var(--mut);background:var(--panel)}
+  .steps .s.on{border-color:var(--accent-deep);color:var(--ink)}
+  .steps .s.done{color:var(--accent)}
+  .steps .s .n{font-family:var(--mono);font-size:10px;display:block;margin-bottom:2px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:11.5px;color:var(--sub);margin-bottom:6px}
+  .field input,.field select{width:100%;background:var(--panel2);border:1px solid var(--hair2);border-radius:6px;color:var(--ink);font-family:inherit;font-size:13px;padding:9px 12px;outline:none}
+  .field input:focus{border-color:var(--accent-deep)}
+  .frow{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .wizlog{font-family:var(--mono);font-size:11.5px;color:var(--sub);background:#0A1918;border:1px solid var(--hair);border-radius:6px;padding:12px 14px;margin-top:14px;line-height:1.7;min-height:40px}
+  .wizlog .ok{color:var(--good)}
+  .timer{font-family:var(--mono);font-size:12px;color:var(--warn)}
+  .livecard{border:1px solid rgba(12,163,12,.4);background:rgba(12,163,12,.06);border-radius:8px;padding:18px;text-align:center}
+  .livecard b{font-size:17px;display:block;margin-bottom:6px}
+  .livecard span{font-size:12.5px;color:var(--sub)}
+
+  /* modal (WhatsApp mock) */
+  .overlay{display:none;position:fixed;inset:0;background:rgba(4,12,11,.72);z-index:100;align-items:center;justify-content:center}
+  .overlay.on{display:flex}
+  .wa{width:360px;background:#0B141A;border:1px solid #1f2c33;border-radius:12px;overflow:hidden;font-family:system-ui,-apple-system,sans-serif}
+  .wa .wahead{background:#1F2C33;padding:12px 16px;display:flex;align-items:center;gap:10px}
+  .wa .avatar{width:34px;height:34px;border-radius:50%;background:var(--accent-deep);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#fff}
+  .wa .who b{display:block;font-size:13.5px;color:#E9EDEF}
+  .wa .who span{font-size:11px;color:#8696A0}
+  .wa .wabody{padding:18px 14px;background:#0B141A url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22%3E%3Ccircle cx=%2230%22 cy=%2230%22 r=%221%22 fill=%22%23142229%22/%3E%3C/svg%3E')}
+  .wa .msg{background:#1F2C33;border-radius:0 10px 10px 10px;padding:10px 12px;font-size:12.5px;color:#E9EDEF;line-height:1.5;margin-bottom:10px}
+  .wa .msg .meta{font-size:10px;color:#8696A0;margin-top:6px;text-align:right}
+  .wa .msg.me{background:#005C4B;border-radius:10px 0 10px 10px;margin-left:60px}
+  .wa .wafoot{padding:12px 14px;display:flex;gap:10px;background:#1F2C33}
+  .wa .wafoot button{flex:1}
+  /* guided tour */
+  .tourbtn{position:fixed;right:22px;bottom:22px;z-index:90;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+  .tourcard{display:none;position:fixed;right:22px;bottom:74px;width:380px;background:var(--panel2);border:1px solid var(--accent-deep);border-radius:10px;padding:16px 18px;z-index:95;box-shadow:0 10px 34px rgba(0,0,0,.55)}
+  .tourcard.on{display:block}
+  .tourcard .tn{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+  .tourcard .tt{font-size:14px;font-weight:600;margin-bottom:6px}
+  .tourcard .td{font-size:12.5px;color:var(--sub);line-height:1.5;margin-bottom:12px}
+  .tourcard .tbtns{display:flex;gap:8px;justify-content:flex-end}
+  .hl{outline:2px solid var(--accent);outline-offset:3px;border-radius:8px;transition:outline .2s}
+  /* spike mode */
+  .spike header, header.spike{}
+  .env.peak{color:#e87ba4;border-color:rgba(232,123,164,.45);display:none}
+  .env.peak.on{display:inline-block}
+  footer{border-top:1px solid var(--hair);padding:14px 26px;font-size:11px;color:var(--mut);display:flex;justify-content:space-between}
+  .banner{display:none;background:rgba(208,59,59,.12);border-bottom:1px solid rgba(208,59,59,.4);color:#F3B9B9;font-size:12.5px;padding:8px 26px}
+  .banner.on{display:block}
+  .banner b{color:#fff}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wordmark">COR<em>TEX</em></div>
+  <div class="env">Demo · Simulated Data</div>
+  <div class="env peak" id="peakflag">11.11 Peak Mode</div>
+  <div class="spacer"></div>
+  <div class="clock" id="clock"></div>
+</header>
+<div class="banner" id="banner">⚠ <b>ERP offline (simulated outage).</b> Events are buffering in the durable queue — zero data loss. Downstream channels continue serving from Cortex's synced state.</div>
+
+<nav>
+  <button class="on" data-v="dash">Operations Dashboard</button>
+  <button data-v="fin">Finance</button>
+  <button data-v="merch">Merchandising</button>
+  <button data-v="api">API Explorer</button>
+  <button data-v="onb">Onboard a Brand</button>
+</nav>
+
+<main>
+<div class="disclaimer">MVP demonstration for IMDA OIP Call 29 · “Agile and Integrated Backend Engine to Support Community Commerce”. All systems, data and integrations are simulated in-browser — no connection to Metro's actual systems of record.</div>
+
+<!-- ══════════ DASHBOARD ══════════ -->
+<section class="view on" id="v-dash">
+
+  <div class="drill">
+    <div class="tx"><b>Resilience drill — zero-data-loss demonstration</b>
+    <span>Take the legacy ERP offline. Watch events buffer in the durable queue, then replay and reconcile to zero discrepancy on restore.</span></div>
+    <div class="qbar"><div class="l"><span>Durable queue</span><span id="qcount">0 events</span></div><div class="qtrack"><div class="qfill" id="qfill"></div></div></div>
+    <button class="btn warn" id="btn-outage">Take ERP offline</button>
+    <button class="btn acc" id="btn-restore" disabled>Restore &amp; replay</button>
+    <select id="spike-dur" class="btn" title="Select 11.11 spike simulation duration" aria-label="Spike duration">
+      <option value="15" selected>15 seconds</option>
+      <option value="60">1 minute</option>
+      <option value="300">5 minutes</option>
+      <option value="600">10 minutes</option>
+    </select>
+    <button class="btn" id="btn-spike" title="Simulate an 11.11 flash-sale traffic spike — autoscaling keeps p95 under 200 ms">Simulate 11.11 spike</button>
+    <button class="btn warn" id="btn-spike-stop" style="display:none" title="Stop 11.11 spike and return to normal operating conditions">Stop spike</button>
+  </div>
+
+  <div class="tiles">
+    <div class="tile"><div class="l">GMV today (all channels)</div><div class="v" id="t-gmv">S$0</div><div class="s" id="t-orders">0 orders</div></div>
+    <div class="tile"><div class="l">Core API latency · p95</div><div class="v" id="t-lat">— <span class="u">ms</span></div><div class="s">target &lt; 200 ms</div></div>
+    <div class="tile"><div class="l">Inventory sync lag</div><div class="v" id="t-lag">— <span class="u">ms</span></div><div class="s">POS event → all channels</div></div>
+    <div class="tile"><div class="l">Events lost</div><div class="v" id="t-lost">0</div><div class="s" id="t-lost-s">across all outages</div></div>
+    <div class="tile"><div class="l">Manual tasks automated</div><div class="v">92<span class="u">%</span></div><div class="s">vs. week-2 baseline (simulated)</div></div>
+    <div class="tile"><div class="l">Reconciliation</div><div class="v" id="t-rec">S$0.00</div><div class="s">ledger vs. channels discrepancy</div></div>
+  </div>
+
+  <div class="rowlbl">Legacy systems of record — adapter health</div>
+  <div class="sys" id="sysgrid"></div>
+
+  <div class="rowlbl">Live orchestration</div>
+  <div class="grid2">
+    <div class="panel"><h3>Event stream <span class="r">CDC → sync → commissions → loyalty → delivery → ledger</span></h3><div class="feed" id="feed"></div></div>
+    <div>
+      <div class="panel" style="margin-bottom:12px"><h3>Sales by channel <span class="r">today · S$</span></h3><div class="bars" id="chanbars"></div></div>
+      <div class="panel"><h3>API latency <span class="r">last 60 requests · ms</span></h3>
+        <svg class="spark" id="spark" viewBox="0 0 600 64" preserveAspectRatio="none" role="img" aria-label="API latency sparkline"></svg>
+        <div class="sparkmeta"><span>0 ms</span><span id="sparknow" style="color:var(--accent)"></span><span>250 ms</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ FINANCE ══════════ -->
+<section class="view" id="v-fin">
+  <div class="grid2">
+    <div class="panel"><h3>Continuous reconciliation <span class="r">automated · zero manual entry</span></h3>
+      <table class="dt"><thead><tr><th>Order</th><th>Channel</th><th>Gross</th><th>Brand split</th><th>Commission</th><th>Metro net</th><th>Status</th></tr></thead>
+      <tbody id="ledger"></tbody></table>
+    </div>
+    <div>
+      <div class="panel" style="margin-bottom:12px"><h3>Payout queue <span class="r">auto-computed, awaiting cycle</span></h3>
+        <table class="dt"><thead><tr><th>Payee</th><th>Role</th><th>Accrued</th></tr></thead><tbody id="payouts"></tbody></table>
+      </div>
+      <div class="panel"><h3>Commission engine <span class="r">multi-tier, configurable</span></h3>
+        <table class="dt"><tbody>
+          <tr><td><b>Ambassador (direct)</b></td><td class="num">8.0% of order value</td></tr>
+          <tr><td><b>Referrer (tier 2)</b></td><td class="num">2.0% of order value</td></tr>
+          <tr><td><b>Brand partner split</b></td><td class="num">70% brand / 30% Metro</td></tr>
+          <tr><td><b>PO approval threshold</b></td><td class="num">S$5,000 → routed to CEO (WhatsApp)</td></tr>
+        </tbody></table>
+        <div style="font-size:11px;color:var(--mut);margin-top:10px">Rules are configuration, not code — editable by Finance without an IT change request.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ MERCHANDISING ══════════ -->
+<section class="view" id="v-merch">
+  <div class="grid2">
+    <div class="panel"><h3>Unified catalogue <span class="r">one stock pool · every channel</span></h3>
+      <table class="dt"><thead><tr><th>SKU</th><th>Product</th><th>Brand</th><th>Price</th><th>Stock</th><th></th></tr></thead>
+      <tbody id="cat"></tbody></table>
+    </div>
+    <div class="panel"><h3>Alerts &amp; draft purchase orders <span class="r">auto-generated</span></h3>
+      <div id="po-list"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ API EXPLORER ══════════ -->
+<section class="view" id="v-api">
+  <div class="panel" style="margin-bottom:12px;display:flex;align-items:center;gap:14px">
+    <div style="font-size:12.5px;color:var(--sub)">Versioned, OpenAPI-documented endpoints. Existing consumers stay on <b style="color:var(--ink)">v1</b> untouched while new modules adopt <b style="color:var(--ink)">v2</b> — backwards compatibility as routine.</div>
+    <button class="btn" id="btn-openapi" style="margin-left:auto;white-space:nowrap">Download OpenAPI 3.1 spec</button>
+    <div class="vswitch"><button class="on" data-ver="v1">v1</button><button data-ver="v2">v2</button></div>
+  </div>
+  <div class="api">
+    <div class="eplist" id="eplist"></div>
+    <div class="resp">
+      <div class="resphead"><span class="code" id="r-code">200 OK</span><span id="r-lat">— ms</span><span id="r-path" style="margin-left:auto;color:var(--mut)"></span></div>
+      <pre id="r-body">Select an endpoint to send a request.</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ ONBOARDING ══════════ -->
+<section class="view" id="v-onb">
+  <div class="wiz">
+    <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:14px">
+      <h3 style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)">Onboard a new community brand</h3>
+      <div class="timer" id="wtimer">elapsed 0:00 · target &lt; 15:00</div>
+    </div>
+    <div class="steps" id="wsteps">
+      <div class="s on"><span class="n">STEP 1</span>Brand details</div>
+      <div class="s"><span class="n">STEP 2</span>Catalogue via API</div>
+      <div class="s"><span class="n">STEP 3</span>Commission structure</div>
+      <div class="s"><span class="n">STEP 4</span>Approval &amp; go-live</div>
+    </div>
+    <div class="panel" id="wbody"></div>
+    <div class="wizlog" id="wlog">Awaiting input — every step below is an API call against the same endpoints shown in the API Explorer.</div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <span>Cortex MVP · IMDA OIP Call 29 · Challenge Owner: Metro (Private) Limited</span>
+  <span>Simulated demonstration · built as evidence of approach, not production software</span>
+</footer>
+
+<!-- WhatsApp approval mock -->
+<div class="overlay" id="wa-overlay">
+  <div class="wa">
+    <div class="wahead"><div class="avatar">C</div><div class="who"><b>Cortex Approvals</b><span>to: CEO · business account</span></div></div>
+    <div class="wabody">
+      <div class="msg" id="wa-msg">…</div>
+      <div class="msg me" id="wa-reply" style="display:none">Approve ✓<div class="meta">read ✓✓</div></div>
+    </div>
+    <div class="wafoot">
+      <button class="btn" id="wa-close">Close</button>
+      <button class="btn acc" id="wa-approve">Approve on the spot ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- Guided tour -->
+<button class="btn acc tourbtn" id="tourbtn">▶ Guided tour for evaluators</button>
+<div class="tourcard" id="tourcard">
+  <div class="tn" id="tour-n"></div>
+  <div class="tt" id="tour-t"></div>
+  <div class="td" id="tour-d"></div>
+  <div class="tbtns"><button class="btn" id="tour-x">Exit</button><button class="btn acc" id="tour-next">Next →</button></div>
+</div>
+
+<script>
+/* ═══════════ CORE SIM STATE ═══════════ */
+const $=id=>document.getElementById(id);
+const fmt=n=>'S$'+n.toLocaleString('en-SG',{maximumFractionDigits:0});
+const fmt2=n=>'S$'+n.toLocaleString('en-SG',{minimumFractionDigits:2,maximumFractionDigits:2});
+const state={gmv:0,orders:0,lost:0,queue:[],erpDown:false,spike:false,lat:[],times:[],recDelta:0,seq:1000,replicas:2};
+
+const SKUS=[
+ {sku:'MT-4471',name:'Niacinamide Serum 30ml',brand:'GlowLab',price:42,stock:64},
+ {sku:'MT-1128',name:'Linen Shirt — Sand',brand:'Atelier M',price:89,stock:41},
+ {sku:'MT-3390',name:'Ceramic Diffuser',brand:'UrbanCrafters',price:58,stock:23},
+ {sku:'MT-7754',name:'Vitamin C Cream 50ml',brand:'GlowLab',price:56,stock:87},
+ {sku:'MT-2216',name:'Weekender Tote',brand:'Atelier M',price:129,stock:18},
+ {sku:'MT-9902',name:'Soy Candle — Yuzu',brand:'UrbanCrafters',price:34,stock:52},
+ {sku:'MT-5583',name:'Silk Scrunchie Set',brand:'Mori & Co',price:24,stock:96},
+ {sku:'MT-6640',name:'Espresso Tumbler',brand:'Mori & Co',price:47,stock:31}];
+const CHANNELS=['Paragon POS','Woodlands POS','Metro Online','TikTok Shop','Ambassador link'];
+const AMB=['@rachel.tan','@marcus.w','@aisha.k','@jon.lim','@priya.s'];
+const chanSales={}; CHANNELS.forEach(c=>chanSales[c]=0);
+
+/* system health */
+const SYSTEMS=[
+ {n:'ERP',d:'Inventory & purchase orders',key:'erp'},
+ {n:'CRM',d:'Member & partner profiles',key:'crm'},
+ {n:'Finance',d:'General ledger & settlement',key:'fin'},
+ {n:'POS',d:'In-store transactions',key:'pos'}];
+function renderSys(){
+  $('sysgrid').innerHTML=SYSTEMS.map(s=>{
+    const down=s.key==='erp'&&state.erpDown;
+    return `<div class="sysc"><div class="n">${s.n}</div><div class="d">${s.d}</div>
+    <span class="st ${down?'crit':''}"><span class="dot"></span><span class="ic">${down?'✕':'✓'}</span>${down?'Offline — events queuing':'Connected · CDC streaming'}</span></div>`;
+  }).join('');
+}
+
+/* event feed */
+const feed=$('feed'); let evCount=0;
+function pushEv(tag,cls,msg){
+  const t=new Date().toLocaleTimeString('en-SG',{hour12:false});
+  const div=document.createElement('div');div.className='ev';
+  div.innerHTML=`<span class="t">${t}</span><span class="tag ${cls}">${tag}</span><span class="m">${msg}</span>`;
+  feed.prepend(div); if(++evCount>140) feed.lastChild.remove();
+}
+
+/* sparkline */
+function drawSpark(){
+  const pts=state.lat.slice(-60); if(!pts.length)return;
+  const w=600,h=64,max=250;
+  const step=w/Math.max(pts.length-1,1);
+  const path=pts.map((v,i)=>`${i?'L':'M'}${(i*step).toFixed(1)},${(h-Math.min(v,max)/max*h).toFixed(1)}`).join('');
+  $('spark').innerHTML=`<line x1="0" y1="${h-200/max*h}" x2="${w}" y2="${h-200/max*h}" stroke="#d03b3b" stroke-opacity=".5" stroke-dasharray="4 4" stroke-width="1"/>
+  <path d="${path}" fill="none" stroke="#6FC6C0" stroke-width="2" stroke-linejoin="round"/>`;
+  $('sparknow').textContent='now: '+pts[pts.length-1]+' ms';
+}
+
+/* channel bars */
+function drawBars(){
+  const max=Math.max(...Object.values(chanSales),1);
+  $('chanbars').innerHTML=CHANNELS.map(c=>`<div class="brow"><div class="bn">${c}</div>
+    <div class="btrack"><div class="bfill" style="width:${(chanSales[c]/max*100).toFixed(1)}%"></div></div>
+    <div class="bv">${fmt(chanSales[c])}</div></div>`).join('');
+}
+
+/* ledger + payouts */
+const ledger=[]; const payouts={};
+function drawFin(){
+  $('ledger').innerHTML=ledger.slice(-9).reverse().map(o=>
+    `<tr><td class="num">#${o.id}</td><td>${o.chan.replace(' POS','')}</td><td class="num">${fmt2(o.gross)}</td>
+     <td class="num">${fmt2(o.brandCut)}</td><td class="num">${fmt2(o.comm)}</td><td class="num"><b>${fmt2(o.net)}</b></td>
+     <td><span class="pill ok">reconciled</span></td></tr>`).join('');
+  $('payouts').innerHTML=Object.entries(payouts).sort((a,b)=>b[1].amt-a[1].amt).slice(0,7).map(([p,x])=>
+    `<tr><td><b>${p}</b></td><td>${x.role}</td><td class="num">${fmt2(x.amt)}</td></tr>`).join('');
+}
+
+/* catalogue + POs */
+const poList=[];
+function drawCat(){
+  $('cat').innerHTML=SKUS.map(s=>{
+    const low=s.stock<=12;
+    return `<tr><td class="num">${s.sku}</td><td><b>${s.name}</b></td><td>${s.brand}</td><td class="num">${fmt(s.price)}</td>
+    <td class="num" style="${low?'color:var(--warn)':''}">${s.stock}</td>
+    <td>${low?'<span class="pill pend">low stock</span>':''}</td></tr>`;}).join('');
+  $('po-list').innerHTML=(poList.length?poList:[]).slice(-4).reverse().map(po=>`
+    <div style="border:1px solid var(--hair2);border-radius:6px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:12.5px;margin-bottom:3px"><b>Draft PO ${po.id}</b> — ${po.qty} × ${po.name}</div>
+      <div style="font-size:11px;color:var(--mut);margin-bottom:8px">Auto-generated on low-inventory trigger · value ${fmt(po.val)}</div>
+      ${po.val>5000
+        ?(po.approved
+          ?`<span class="pill ok">approved by CEO via WhatsApp ✓</span>`
+          :`<span class="pill pend">≥ S$5,000 — approval required</span>
+            <button class="btn" style="margin-left:8px;padding:5px 10px;font-size:11px" onclick="openWA('${po.id}')">Open WhatsApp approval</button>`)
+        :`<span class="pill ok">within threshold — queued for Merchandising review</span>`}
+    </div>`).join('')||'<div style="font-size:12px;color:var(--mut)">No alerts yet — the engine raises a draft PO automatically when a SKU crosses its low-stock threshold.</div>';
+}
+
+/* ═══════════ SALE PIPELINE ═══════════ */
+function sale(){
+  const s=SKUS[Math.floor(Math.random()*SKUS.length)];
+  if(s.stock<=0)return;
+  const chan=CHANNELS[Math.floor(Math.random()*CHANNELS.length)];
+  const amb=chan==='Ambassador link'||Math.random()<.25?AMB[Math.floor(Math.random()*AMB.length)]:null;
+  const qty=Math.random()<.85?1:2;
+  const gross=s.price*qty;
+  s.stock-=qty;
+  const id=++state.seq;
+  const lat=Math.round((state.spike?52:38)+Math.random()*Math.random()*(state.spike?125:140));
+  state.lat.push(lat); state.times.push(Date.now());
+
+  pushEv('POS','pos',`Sale <b>#${id}</b> · ${qty}× <b>${s.name}</b> @ ${chan}${amb?' · attributed '+amb:''}`);
+
+  if(state.erpDown){
+    state.queue.push({id,s,chan,amb,gross,qty});
+    pushEv('QUEUE','q',`ERP offline — event <b>#${id}</b> buffered durably (${state.queue.length} in queue)`);
+  } else {
+    settle({id,s,chan,amb,gross,qty},lat);
+  }
+  /* low stock → draft PO */
+  if(s.stock<=12&&!poList.find(p=>p.sku===s.sku&&!p.done)){
+    const qty2=60+Math.floor(Math.random()*80);
+    poList.push({id:'PO-'+(2200+poList.length),sku:s.sku,name:s.name,qty:qty2,val:Math.round(qty2*s.price*.55),done:false});
+    pushEv('LOGIC','sync',`Low stock on <b>${s.sku}</b> → draft purchase order raised automatically`);
+  }
+  updateTop(); drawBars(); drawCat(); drawSpark();
+}
+function settle(o,lat){
+  const commA=o.amb?o.gross*.08:0, commB=o.amb&&Math.random()<.4?o.gross*.02:0;
+  const brandCut=o.gross*.7, net=o.gross-brandCut-commA-commB;
+  state.gmv+=o.gross; state.orders++; chanSales[o.chan]+=o.gross;
+  ledger.push({id:o.id,chan:o.chan,gross:o.gross,brandCut,comm:commA+commB,net});
+  const bp=o.s.brand+' (brand)';
+  payouts[bp]=payouts[bp]||{role:'Brand partner',amt:0}; payouts[bp].amt+=brandCut;
+  if(o.amb){payouts[o.amb]=payouts[o.amb]||{role:'Ambassador',amt:0}; payouts[o.amb].amt+=commA+commB;}
+  pushEv('SYNC','sync',`Inventory <b>${o.s.sku}</b> → ${o.s.stock} units, synced to all channels in <b>${lat} ms</b>`);
+  pushEv('FIN','fin',`Split: brand ${fmt2(brandCut)} · commission ${fmt2(commA+commB)} · Metro ${fmt2(net)} — ledger reconciled`);
+  pushEv('PTS','fin',`Treasured <b>+${Math.floor(o.gross)} pts</b> → buyer at checkout — one balance across buy / sell / deliver roles`);
+  if((o.chan==='Metro Online'||o.chan==='TikTok Shop'||o.chan==='Ambassador link')&&Math.random()<.4){
+    const job='JOB-'+(5500+(state.seq%400));
+    const area=['Punggol','Sengkang','Tampines','Bedok','Jurong East'][Math.floor(Math.random()*5)];
+    pushEv('ROUTE','sync',`Delivery <b>${job}</b> batched in ${area} → offered via WhatsApp to hyper-local couriers`);
+    setTimeout(()=>pushEv('ROUTE','fin',`<b>${job}</b> delivered · photo proof · S$8.50 instant payout · <b>+25 Treasured pts</b> to courier`),5000+Math.random()*4000);
+  }
+  drawFin();
+}
+function updateTop(){
+  $('t-gmv').textContent=fmt(state.gmv);
+  const opm=state.times.filter(t=>Date.now()-t<60000).length;
+  $('t-orders').textContent=state.orders+' orders · '+opm+'/min';
+  const l=[...state.lat].slice(-60).sort((a,b)=>a-b);
+  if(l.length){$('t-lat').innerHTML=l[Math.floor(l.length*.95)]+' <span class="u">ms</span>';}
+  $('t-lag').innerHTML=(state.erpDown?'—':Math.round(45+Math.random()*60))+' <span class="u">ms</span>';
+  $('t-lost').textContent=state.lost;
+  $('t-rec').textContent=fmt2(state.recDelta);
+  $('qcount').textContent=state.queue.length+' events';
+  $('qfill').style.width=Math.min(state.queue.length*4,100)+'%';
+}
+
+/* ═══════════ OUTAGE DRILL ═══════════ */
+$('btn-outage').onclick=()=>{
+  state.erpDown=true; $('banner').classList.add('on');
+  $('btn-outage').disabled=true; $('btn-restore').disabled=false;
+  pushEv('DRILL','q','<b>Simulated ERP outage started</b> — durable queue armed, consumers unaffected');
+  renderSys();
+};
+$('btn-restore').onclick=()=>{
+  state.erpDown=false; $('banner').classList.remove('on');
+  $('btn-outage').disabled=false; $('btn-restore').disabled=true;
+  renderSys();
+  const n=state.queue.length;
+  pushEv('DRILL','sync',`<b>ERP restored</b> — replaying ${n} buffered events…`);
+  const drain=setInterval(()=>{
+    if(!state.queue.length){clearInterval(drain);
+      pushEv('DRILL','sync',`<b>Replay complete.</b> ${n} events settled · 0 lost · reconciliation discrepancy ${fmt2(0)}`);
+      updateTop(); return;}
+    const o=state.queue.shift();
+    settle(o,Math.round(30+Math.random()*40));
+    updateTop();
+  },140);
+};
+
+/* ═══════════ API EXPLORER ═══════════ */
+let ver='v1';
+const EPS=[
+ {m:'GET',p:'/inventory/{sku}',d:'Real-time stock position across all channels',
+  r:()=>({sku:'MT-3390',name:'Ceramic Diffuser',stock_on_hand:SKUS[2].stock,channels:{paragon:SKUS[2].stock,woodlands:SKUS[2].stock,online:SKUS[2].stock,tiktok_shop:SKUS[2].stock},reserved_livestream:4,source:'ERP via CDC',as_of:nowISO()}),
+  r2:()=>({sku:'MT-3390',name:'Ceramic Diffuser',stock_on_hand:SKUS[2].stock,channels:{paragon:SKUS[2].stock,woodlands:SKUS[2].stock,online:SKUS[2].stock,tiktok_shop:SKUS[2].stock},reserved_livestream:4,dropship_eligible:true,eta_replenishment:'2026-08-19',source:'ERP via CDC',as_of:nowISO()})},
+ {m:'GET',p:'/pricing/{sku}',d:'Current price incl. dynamic discounts',
+  r:()=>({sku:'MT-3390',list_price:58.00,active_discount:{type:'livestream',pct:10},effective_price:52.20,currency:'SGD'}),
+  r2:()=>({sku:'MT-3390',list_price:58.00,active_discount:{type:'livestream',pct:10},effective_price:52.20,member_price:49.30,currency:'SGD'})},
+ {m:'GET',p:'/profiles/{member_id}',d:'Unified member profile from CRM',
+  r:()=>({member_id:'TRS-208114',name:'Priya S.',tier:'Treasured Gold',roles:['buyer','ambassador'],points_balance:2140,joined:'2019-03-22',source:'CRM via CDC'}),
+  r2:()=>({member_id:'TRS-208114',name:'Priya S.',tier:'Treasured Gold',roles:['buyer','ambassador'],points_balance:2140,lifetime_gmv:8412.50,joined:'2019-03-22',source:'CRM via CDC'})},
+ {m:'POST',p:'/orders',d:'Create order — triggers sync, commission & split pipeline',
+  r:()=>({order_id:'#'+(state.seq+1),status:'accepted',pipeline:['inventory_sync','commission_calc','payment_split','ledger_post'],est_settlement_ms:120}),
+  r2:()=>({order_id:'#'+(state.seq+1),status:'accepted',pipeline:['inventory_sync','commission_calc','payment_split','ledger_post','loyalty_accrual'],est_settlement_ms:120})},
+ {m:'GET',p:'/loyalty/treasured/{member_id}',d:'Treasured balance — one identity across buyer, seller & courier roles',
+  r:()=>({member_id:'TRS-208114',name:'Priya S.',points_balance:2140,accrual_this_month:{as_buyer:96,as_ambassador:184,as_courier:50},rate:'1 pt per S$1 spent · +25 pts per completed route',source:'CRM via CDC'}),
+  r2:()=>({member_id:'TRS-208114',name:'Priya S.',points_balance:2140,accrual_this_month:{as_buyer:96,as_ambassador:184,as_courier:50},rate:'1 pt per S$1 spent · +25 pts per completed route',tier_progress:{current:'Treasured Gold',next:'Platinum',pct:72},expiring_next_quarter:120,source:'CRM via CDC'})},
+ {m:'POST',p:'/delivery/jobs',d:'Create crowd-sourced delivery job (front-end Phase Two rail)',
+  r:()=>({job_id:'JOB-5521',status:'offered',planning_area:'Punggol',batch_size:3,payout_sgd:8.50,offered_via:'WhatsApp'}),
+  r2:()=>({job_id:'JOB-5521',status:'offered',planning_area:'Punggol',batch_size:3,payout_sgd:8.50,offered_via:'WhatsApp',courier_assignment:{mode:'hyper-local',radius_km:1.2,first_offer:'residents of planning area'},order_tracking:{url:'https://cortex.example/t/JOB-5521',events:['collected','en_route','delivered']}})},
+ {m:'GET',p:'/commissions/{ambassador}',d:'Accrued multi-tier commission',
+  r:()=>({ambassador:'@rachel.tan',period:'2026-08',direct_pct:8.0,tier2_pct:2.0,accrued:412.36,next_payout:'2026-08-07',currency:'SGD'}),
+  r2:()=>({ambassador:'@rachel.tan',period:'2026-08',direct_pct:8.0,tier2_pct:2.0,accrued:412.36,pending_clearance:38.20,next_payout:'2026-08-07',currency:'SGD'})},
+ {m:'POST',p:'/partners/onboard',d:'Start brand onboarding workflow (< 15 min)',
+  r:()=>({workflow_id:'WF-8842',brand:'UrbanCrafters',status:'in_progress',steps_total:4,sla_minutes:15}),
+  r2:()=>({workflow_id:'WF-8842',brand:'UrbanCrafters',status:'in_progress',steps_total:4,sla_minutes:15,webhook_events:['step.completed','approval.required','brand.live']})},
+ {m:'GET',p:'/ops/health',d:'Adapter & queue health for the ops dashboard',
+  r:()=>({erp:state.erpDown?'offline_buffering':'connected',crm:'connected',finance:'connected',pos:'connected',queue_depth:state.queue.length,api_p95_ms:(([...state.lat].sort((a,b)=>a-b)[Math.floor(state.lat.length*.95)])||62),events_lost:0}),
+  r2:()=>({erp:state.erpDown?'offline_buffering':'connected',crm:'connected',finance:'connected',pos:'connected',queue_depth:state.queue.length,api_p95_ms:(([...state.lat].sort((a,b)=>a-b)[Math.floor(state.lat.length*.95)])||62),events_lost:0,uptime_30d_pct:99.98})}
+];
+function nowISO(){return new Date().toISOString()}
+let epSel=0;
+function drawEps(){
+  $('eplist').innerHTML=EPS.map((e,i)=>`<div class="ep ${i===epSel?'on':''}" data-i="${i}">
+    <span class="meth ${e.m.toLowerCase()}">${e.m}</span><span class="p">/${ver}${e.p}</span><div class="d">${e.d}</div></div>`).join('');
+  document.querySelectorAll('.ep').forEach(el=>el.onclick=()=>{epSel=+el.dataset.i;fire();});
+}
+function fire(){
+  drawEps();
+  const e=EPS[epSel];
+  const lat=Math.round(34+Math.random()*90);
+  $('r-body').textContent='…';
+  setTimeout(()=>{
+    $('r-code').textContent=e.m==='POST'?'201 Created':'200 OK';
+    $('r-lat').textContent=lat+' ms';
+    $('r-path').textContent=e.m+' /'+ver+e.p;
+    $('r-body').textContent=JSON.stringify((ver==='v2'?e.r2:e.r)(),null,2);
+  },lat);
+}
+document.querySelectorAll('.vswitch button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.vswitch button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); ver=b.dataset.ver; fire();
+});
+
+/* ═══════════ ONBOARDING WIZARD ═══════════ */
+let wstep=0, wstart=null, wtimerInt=null;
+const wsteps=[...document.querySelectorAll('#wsteps .s')];
+function wlog(m,ok){const d=$('wlog');d.innerHTML+=`<div${ok?' class="ok"':''}>${m}</div>`;d.scrollTop=d.scrollHeight;}
+function wtick(){if(!wstart)return;const s=Math.floor((Date.now()-wstart)/1000);
+  $('wtimer').textContent=`elapsed ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')} · target < 15:00`;}
+function drawWiz(){
+  wsteps.forEach((el,i)=>{el.className='s'+(i===wstep?' on':i<wstep?' done':'')});
+  const b=$('wbody');
+  if(wstep===0)b.innerHTML=`<div class="frow"><div class="field"><label>Brand name</label><input id="w-name" value="UrbanCrafters"></div>
+    <div class="field"><label>UEN</label><input value="202412345K"></div></div>
+    <div class="frow"><div class="field"><label>Category</label><select><option>Home &amp; Lifestyle</option><option>Beauty</option><option>Fashion</option></select></div>
+    <div class="field"><label>Settlement account (masked)</label><input value="DBS ••••7710"></div></div>
+    <button class="btn acc" onclick="wnext()">Create partner record →</button>`;
+  if(wstep===1)b.innerHTML=`<div class="field"><label>Catalogue feed URL (mapped via API — no file uploads, no IT ticket)</label>
+    <input value="https://api.urbancrafters.sg/catalog.json"></div>
+    <button class="btn acc" onclick="wnext()">Map catalogue via API →</button>`;
+  if(wstep===2)b.innerHTML=`<div class="frow"><div class="field"><label>Ambassador commission</label><input value="8.0 %"></div>
+    <div class="field"><label>Tier-2 referral</label><input value="2.0 %"></div></div>
+    <div class="frow"><div class="field"><label>Revenue split</label><input value="70% brand / 30% Metro"></div>
+    <div class="field"><label>Payout cycle</label><select><option>Weekly (PayNow)</option><option>Fortnightly</option></select></div></div>
+    <button class="btn acc" onclick="wnext()">Configure commission graph →</button>`;
+  if(wstep===3)b.innerHTML=`<div style="font-size:12.5px;color:var(--sub);margin-bottom:12px">Catalogue value exceeds the S$5,000 threshold — approval auto-routed.</div>
+    <button class="btn acc" onclick="wnext()">Simulate CEO approval via WhatsApp ✓</button>`;
+  if(wstep===4){
+    const s=Math.floor((Date.now()-wstart)/1000);
+    clearInterval(wtimerInt);
+    b.innerHTML=`<div class="livecard"><b>✓ UrbanCrafters is live</b>
+    <span>28 SKUs in the community catalogue · visible to every ambassador storefront · stock synced to one pool<br>
+    Elapsed: <b style="color:var(--good)">${Math.floor(s/60)}m ${s%60}s</b> (target &lt; 15m) — timings simulated for demonstration</span></div>`;
+    wlog(`brand.live event emitted — onboarding completed in ${Math.floor(s/60)}m ${s%60}s`,true);
+  }
+}
+function wnext(){
+  if(wstep===0){wstart=Date.now();wtimerInt=setInterval(wtick,1000);
+    wlog('POST /v1/partners/onboard → 201 · workflow WF-8842 started');
+    wlog('POST /v1/partners → partner record PRT-3308 created in 64 ms',true);}
+  if(wstep===1){wlog('POST /v1/catalog/import → 28 SKUs validated & mapped in 1.2 s',true);}
+  if(wstep===2){wlog('PUT /v1/commissions/config → multi-tier graph saved · effective immediately',true);}
+  if(wstep===3){wlog('approval.required → WhatsApp → approved by CEO ✓',true);}
+  wstep++; drawWiz();
+}
+window.wnext=wnext;
+
+/* ═══════════ NAV & BOOT ═══════════ */
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); $('v-'+b.dataset.v).classList.add('on');
+});
+setInterval(()=>{$('clock').textContent=new Date().toLocaleString('en-SG',{hour12:false})},1000);
+$('clock').textContent=new Date().toLocaleString('en-SG',{hour12:false});
+
+/* ═══════════ 11.11 SPIKE DRILL ═══════════ */
+let spikeTimer = null;
+let spikeScaleTimer = null;
+let spikeTicker = null;
+let spikeStartTime = 0;
+let spikeDurationSec = 15;
+let spikeOrdersBefore = 0;
+
+function fmtSpikeRemaining(sec) {
+  if (sec < 60) return sec + 's';
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}m ${String(s).padStart(2, '0')}s`;
+}
+
+function endSpike(manual = false) {
+  if (!state.spike && !spikeTimer && !spikeScaleTimer && !spikeTicker) return;
+
+  if (spikeTimer) { clearTimeout(spikeTimer); spikeTimer = null; }
+  if (spikeScaleTimer) { clearTimeout(spikeScaleTimer); spikeScaleTimer = null; }
+  if (spikeTicker) { clearInterval(spikeTicker); spikeTicker = null; }
+
+  state.spike = false;
+  state.replicas = 2;
+
+  $('peakflag').classList.remove('on');
+  $('peakflag').textContent = '11.11 Peak Mode';
+  $('btn-spike').disabled = false;
+  $('btn-spike-stop').style.display = 'none';
+  $('spike-dur').disabled = false;
+
+  const elapsedSec = Math.max(1, Math.round((Date.now() - spikeStartTime) / 1000));
+  const ordersCount = state.orders - spikeOrdersBefore;
+  const l = [...state.lat].slice(-60).sort((a, b) => a - b), p95 = l[Math.floor(l.length * .95)] || 0;
+
+  if (manual) {
+    pushEv('DRILL', 'sync', `<b>Spike stopped manually.</b> ${ordersCount} orders in ${elapsedSec} s · p95 ${p95} ms · 0 events lost · autoscaler returning 6 → 2 replicas`);
+  } else {
+    pushEv('DRILL', 'sync', `<b>Spike absorbed.</b> ${ordersCount} orders in ${spikeDurationSec} s · p95 ${p95} ms · 0 events lost · autoscaler returning 6 → 2 replicas`);
+  }
+}
+
+function startSpike() {
+  if (state.spike) return;
+
+  const selVal = parseInt($('spike-dur').value, 10);
+  spikeDurationSec = isNaN(selVal) || selVal <= 0 ? 15 : selVal;
+  spikeStartTime = Date.now();
+  spikeOrdersBefore = state.orders;
+
+  state.spike = true;
+  $('peakflag').textContent = `11.11 Peak Mode · ${fmtSpikeRemaining(spikeDurationSec)}`;
+  $('peakflag').classList.add('on');
+  $('btn-spike').disabled = true;
+  $('btn-spike-stop').style.display = 'inline-block';
+  $('spike-dur').disabled = true;
+
+  pushEv('DRILL', 'q', '<b>11.11 flash-sale spike started</b> — inbound order rate ×8');
+
+  spikeScaleTimer = setTimeout(() => {
+    state.replicas = 6;
+    pushEv('SCALE', 'sync', 'Autoscaler: API tier <b>2 → 6 replicas</b> · queue consumers <b>2 → 4</b> — p95 held under 200 ms');
+    spikeScaleTimer = null;
+  }, 1800);
+
+  spikeTicker = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - spikeStartTime) / 1000);
+    const rem = Math.max(0, spikeDurationSec - elapsed);
+    $('peakflag').textContent = `11.11 Peak Mode · ${fmtSpikeRemaining(rem)}`;
+  }, 1000);
+
+  spikeTimer = setTimeout(() => {
+    endSpike(false);
+  }, spikeDurationSec * 1000);
+}
+
+$('btn-spike').onclick = startSpike;
+$('btn-spike-stop').onclick = () => endSpike(true);
+
+/* ═══════════ WHATSAPP APPROVAL ═══════════ */
+let waPO=null;
+window.openWA=id=>{
+  waPO=poList.find(p=>p.id===id); if(!waPO)return;
+  $('wa-reply').style.display='none'; $('wa-approve').disabled=false;
+  $('wa-msg').innerHTML=`<b>Approval required</b> — Draft ${waPO.id}<br>${waPO.qty} × ${waPO.name}<br>Value <b>${fmt(waPO.val)}</b> exceeds the S$5,000 threshold.<br>Raised automatically on low-stock trigger.<div class="meta">Cortex · just now</div>`;
+  $('wa-overlay').classList.add('on');
+};
+$('wa-close').onclick=()=>$('wa-overlay').classList.remove('on');
+$('wa-approve').onclick=()=>{
+  $('wa-reply').style.display='block'; $('wa-approve').disabled=true;
+  waPO.approved=true;
+  pushEv('LOGIC','fin',`PO <b>${waPO.id}</b> approved by CEO via WhatsApp — released to supplier`);
+  setTimeout(()=>{$('wa-overlay').classList.remove('on');drawCat();},900);
+};
+
+/* ═══════════ OPENAPI EXPORT ═══════════ */
+$('btn-openapi').onclick=()=>{
+  const paths=EPS.map(e=>`  /${ver}${e.p.replace(/{(\w+)}/g,'{$1}')}:\n    ${e.m.toLowerCase()}:\n      summary: ${e.d}\n      tags: [${e.p.split('/')[1]}]\n      responses:\n        '${e.m==='POST'?'201':'200'}':\n          description: OK\n          content:\n            application/json: {}`).join('\n');
+  const yaml=`openapi: 3.1.0\ninfo:\n  title: Cortex Backend Engine API (${ver})\n  version: "${ver==='v1'?'1.0.0':'2.0.0'}"\n  description: >-\n    Agile backend orchestration layer for community commerce.\n    Contract-first — this document is co-signed with the front-end solver\n    at the day-14 Architecture Alignment workshop. Demonstration spec.\nservers:\n  - url: https://api.cortex.example/${ver}\npaths:\n${paths}\n`;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([yaml],{type:'text/yaml'}));
+  a.download=`cortex-openapi-${ver}.yaml`; a.click();
+};
+
+/* ═══════════ GUIDED TOUR ═══════════ */
+const TOUR=[
+ {v:'dash',sel:'#feed',t:'The orchestration pipeline, live',d:'Every simulated sale flows through the full chain: CDC capture → inventory sync → commission & split calculation → Treasured points accrual → reconciled ledger. Online orders also spawn crowd-sourced delivery jobs, offered over WhatsApp with instant payout on proof of delivery.'},
+ {v:'dash',sel:'.drill',t:'Zero data loss, on demand',d:'Click “Take ERP offline”. Sales keep flowing while events buffer in the durable queue. Restore, and the queue replays to zero discrepancy — the brief\'s resilience metric, demonstrated.'},
+ {v:'dash',sel:'#btn-spike',t:'11.11 flash-sale spike',d:'Click “Simulate 11.11 spike” to multiply the order rate ×8. The autoscaler adds replicas and p95 latency stays under the 200 ms target.'},
+ {v:'fin',sel:'#v-fin .panel',t:'Finance without spreadsheets',d:'Every order arrives already reconciled: brand split, multi-tier commission, Metro net. The payout queue accrues automatically — no manual data entry anywhere.'},
+ {v:'merch',sel:'#po-list',t:'Approvals where the CEO already is',d:'Low stock raises a draft PO automatically. Anything over S$5,000 routes to a WhatsApp approval — open one and approve it on the spot.'},
+ {v:'api',sel:'.vswitch',t:'Versioned, contract-first APIs',d:'Toggle v1 / v2: old consumers keep working untouched while new modules adopt v2 — backwards compatibility as routine. The endpoint family already includes the Treasured loyalty and crowd-sourced delivery rails the community platform needs, and the OpenAPI spec is downloadable.'},
+ {v:'onb',sel:'#wsteps',t:'A brand live in under 15 minutes',d:'Walk the four steps — each one is an API call, logged below with its latency. The elapsed timer runs against the brief\'s 15-minute onboarding target.'}];
+let tourI=-1;
+function showTab(v){document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x.dataset.v===v));
+  document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id==='v-'+v));}
+function clearHL(){document.querySelectorAll('.hl').forEach(e=>e.classList.remove('hl'));}
+function tourStep(i){
+  clearHL();
+  if(i>=TOUR.length){tourEnd();return;}
+  tourI=i; const s=TOUR[i];
+  showTab(s.v);
+  const el=document.querySelector(s.sel); if(el){el.classList.add('hl');el.scrollIntoView({block:'center',behavior:'smooth'});}
+  $('tour-n').textContent=`Step ${i+1} of ${TOUR.length}`;
+  $('tour-t').textContent=s.t; $('tour-d').textContent=s.d;
+  $('tour-next').textContent=i===TOUR.length-1?'Finish ✓':'Next →';
+  $('tourcard').classList.add('on'); $('tourbtn').style.display='none';
+}
+function tourEnd(){clearHL();$('tourcard').classList.remove('on');$('tourbtn').style.display='block';tourI=-1;}
+$('tourbtn').onclick=()=>tourStep(0);
+$('tour-next').onclick=()=>tourStep(tourI+1);
+$('tour-x').onclick=tourEnd;
+
+/* ═══════════ BOOT ═══════════ */
+renderSys(); drawCat(); drawBars(); drawWiz(); drawEps(); fire();
+pushEv('SYNC','sync','Cortex orchestration layer online — CDC adapters streaming from ERP, CRM, Finance, POS');
+/* warm start */
+for(let i=0;i<6;i++) sale();
+(function loop(){ sale(); setTimeout(loop, state.spike?300:2200); })();
+setInterval(()=>{if(!state.erpDown){state.lat.push(Math.round((state.spike?52:38)+Math.random()*Math.random()*120));drawSpark();updateTop();}},1500);
+</script>
+</body>
+</html>
